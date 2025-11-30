@@ -1,0 +1,64 @@
+import express from 'express';
+import { getModelsFromRequest } from '../utils/getModels.js';
+
+const router = express.Router();
+
+// Save or update Google user data
+router.post('/auth', async (req, res) => {
+  const { email, name, image } = req.body;
+  const { User } = getModelsFromRequest(req);
+
+  try {
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      user = new User({ email, name, image });
+    } else {
+      user.name = name;
+      user.image = image;
+    }
+
+    await user.save();
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update phone before order confirmation
+router.post('/phone', async (req, res) => {
+  const { email, phone } = req.body;
+  const { User } = getModelsFromRequest(req);
+
+  try {
+    let user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    user.phone = phone;
+    await user.save();
+
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get user by email (used in NextAuth callbacks)
+router.get('/check', async (req, res) => {
+  const { email } = req.query;
+  const { User } = getModelsFromRequest(req);
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+export default router;
